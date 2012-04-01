@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<opml version="1.0">
+    <head>
+        <title>FeedGoal Subscriptions</title>
+    </head>
+    <body>
+    	<outline text="Android Phone Fans" title="Android Phone Fans" htmlUrl="http://phandroid.com" xmlUrl="http://feeds2.feedburner.com/AndroidPhoneFans" type="rss"/>
+    	<outline text="Android and Me" title="Android and Me" htmlUrl="http://androidandme.com/" xmlUrl="http://feeds.feedburner.com/androidandme" type="rss"/>
+    	<outline text="Android Central" title="Android Central" htmlUrl="http://www.androidcentral.com" xmlUrl="http://feeds.feedburner.com/androidcentral" type="rss"/>
+    	<outline text="Android Developers Blog" title="Android Developers Blog" htmlUrl="http://android-developers.blogspot.com" xmlUrl="http://feeds.feedburner.com/blogspot/hsDu" type="atom"/>
+    	<outline text="Twitter / AndroidDev" title="Twitter / AndroidDev" htmlUrl="http://twitter.com/androiddev" xmlUrl="http://twitter.com/statuses/user_timeline/93711247.rss" type="rss"/>
+    </body>
+</opml>

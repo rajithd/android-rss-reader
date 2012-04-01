@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<color name="main_color">#7ab8c5</color>
+	<color name="second_color">#FFFFFF</color>
+	<color name="color1">#666666</color>
+	<color name="color2">#000000</color>
+	<color name="loading_color">@color/color1</color>
+	<color name="tab_background">@color/main_color</color>
+	<color name="list_divider">@color/main_color</color>
+	<color name="item_notselected_text">@color/color2</color>
+	<color name="item_selected_text">@color/color1</color>
+</resources>

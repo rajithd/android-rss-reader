@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+	<ListPreference
+		android:title="@string/pref_start_channel_title"
+		android:summary="@string/pref_start_channel_descr"
+		android:key="startChannel"
+		android:defaultValue="1" />
+	<ListPreference
+		android:title="@string/pref_item_view_title"
+		android:summary="@string/pref_item_view_descr"
+		android:key="itemView"
+		android:defaultValue="0"
+		android:entries="@array/pref_item_view_labels"
+		android:entryValues="@array/pref_item_view_values" />
+	<ListPreference
+		android:title="@string/pref_max_items_title"
+		android:summary="@string/pref_max_items_descr"
+		android:key="maxItems"
+		android:defaultValue="20"
+		android:entries="@array/pref_max_items_labels"
+		android:entryValues="@array/pref_max_items_values" />
+	<ListPreference
+		android:title="@string/pref_max_hours_title"
+		android:summary="@string/pref_max_hours_descr"
+		android:key="maxHours"
+		android:defaultValue="168"
+		android:entries="@array/pref_max_hours_labels"
+		android:entryValues="@array/pref_max_hours_values" />
+	<ListPreference
+		android:title="@string/pref_update_period_title"
+		android:summary="@string/pref_update_period_descr"
+		android:key="updatePeriod"
+		android:defaultValue="60"
+		android:entries="@array/pref_update_period_labels"
+		android:entryValues="@array/pref_update_period_values" />
+</PreferenceScreen>

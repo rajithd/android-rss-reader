@@ -1,0 +1,20 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+	<item android:id="@+id/menu_opt_home"
+          android:title="@string/menu_home"
+          android:titleCondensed="@string/menu_home" 
+          android:icon="@drawable/ic_menu_home"/>
+    <item android:id="@+id/menu_opt_channels"
+          android:title="@string/menu_channels"
+          android:titleCondensed="@string/menu_channels"
+          android:icon="@drawable/ic_menu_agenda">
+    	<menu/>
+    </item>
+    <item android:id="@+id/menu_opt_preferences"
+          android:title="@string/menu_preferences"
+          android:titleCondensed="@string/menu_preferences" 
+          android:icon="@drawable/ic_menu_preferences"/>
+    <item android:id="@+id/menu_opt_about"
+          android:title="@string/menu_about"
+          android:titleCondensed="@string/menu_about"
+          android:icon="@drawable/ic_menu_info_details"/>      
+</menu>

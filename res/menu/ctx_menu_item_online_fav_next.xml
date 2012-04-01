@@ -1,0 +1,8 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+	<item android:id="@+id/add_fav"
+          android:title="@string/add_fav" />
+    <item android:id="@+id/next"
+          android:title="@string/next_item" />
+    <item android:id="@+id/share"
+          android:title="@string/share" />
+</menu>
