@@ -24,10 +24,10 @@
     </string-array>
     <string-array name="pref_max_hours_labels">
     	<item>never</item>
-        <item>after 1 day</item>
-        <item>after 2 days</item>
-        <item>after 1 week</item>
-        <item>after 1 month</item>
+        <item>After 1 day</item>
+        <item>After 2 days</item>
+        <item>After 1 week</item>
+        <item>After 1 month</item>
     </string-array>
     <string-array name="pref_max_hours_values">
     	<item>-1</item>
@@ -38,15 +38,15 @@
     </string-array>
     <string-array name="pref_update_period_labels">
     	<item>never, update manually</item>
-    	<item>after 5 minutes</item>
-    	<item>after 15 minutes</item>
-    	<item>after 30 minutes</item>
-    	<item>after 1 hour</item>
-        <item>after 4 hours</item>
-        <item>after 8 hours</item>
-        <item>after 1 day</item>
-        <item>after 2 days</item>
-        <item>after 1 week</item>
+    	<item>After 5 minutes</item>
+    	<item>After 15 minutes</item>
+    	<item>After 30 minutes</item>
+    	<item>After 1 hour</item>
+        <item>After 4 hours</item>
+        <item>After 8 hours</item>
+        <item>After 1 day</item>
+        <item>After 2 days</item>
+        <item>After 1 week</item>
     </string-array>
     <string-array name="pref_update_period_values">
     	<item>-1</item>
