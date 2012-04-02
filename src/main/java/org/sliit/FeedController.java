@@ -25,21 +25,17 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-public class FeedHandler extends DefaultHandler {
+public class FeedController extends DefaultHandler {
 
-	private static final String LOG_TAG = "FeedHandler";
+	private static final String LOG_TAG = "FeedController";
 	
 	private Feed mFeed;
 	private Item mItem;
 	private Enclosure mEnclosure;
 	
-	//RSS Date Format
+
 	protected static final SimpleDateFormat RFC822_DATE_FORMAT = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", Locale.US);
-	//Atom Date Formats
-	//Common Atom Date Formats: yyyy-MM-dd'T'HH:mm:ssZ
-	//						    yyyy-MM-dd'T'HH:mm:ssz
-	//Google Reader Shared Items Atom Date Format: yyyy-MM-dd'T'HH:mm:ss'Z'
-	//Android Developers Blog Atom Date Format: yyyy-MM-dd'T'HH:mm:ss.SSSZ
+
 	protected static final SimpleDateFormat ISO8601_DATE_FORMATS[] = new SimpleDateFormat[] {new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssz"), new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ"), new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'"), new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")};
 	
 	//Allowed Namespaces
@@ -64,7 +60,7 @@ public class FeedHandler extends DefaultHandler {
 	private int mNbrItems = 0;
 	private StringBuffer mSb;
 	
-	public FeedHandler(Context ctx) {
+	public FeedController(Context ctx) {
 		maxItems = SharedPreferencesHelper.getPrefMaxDownload(ctx);
 	}
 	
@@ -129,7 +125,6 @@ public class FeedHandler extends DefaultHandler {
 	}
 	
 	public void endElement(String uri, String localName, String qName) throws SAXException {
-		//Only consider elements from allowed third-party namespaces
 		if (NAMESPACES.contains(uri)) {
 			String value = localName.trim();
 			

@@ -20,7 +20,7 @@ import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.TabHost.OnTabChangeListener;
 import org.sliit.domain.Item;
-import org.sliit.service.DbFeedAdapter;
+import org.sliit.service.RepositoryController;
 import org.sliit.service.DbSchema;
 import org.sliit.service.SharedPreferencesHelper;
 import org.xml.sax.SAXException;
@@ -39,7 +39,7 @@ public class FeedTabActivity extends TabActivity implements OnItemClickListener 
 	
 	private static final int WEB_ACTIVITY_CODE = 1;
 	
-	private DbFeedAdapter mDbFeedAdapter;
+	private RepositoryController mRepositoryController;
 	
 	private boolean mIsOnline = true;
 	
@@ -48,8 +48,8 @@ public class FeedTabActivity extends TabActivity implements OnItemClickListener 
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        mDbFeedAdapter = new DbFeedAdapter(this);
-        mDbFeedAdapter.open();
+        mRepositoryController = new RepositoryController(this);
+        mRepositoryController.open();
         
         setContentView(R.layout.main);
         
@@ -61,7 +61,7 @@ public class FeedTabActivity extends TabActivity implements OnItemClickListener 
 			SharedPreferencesHelper.setPrefTabFeedId(this, feedId);
 		}
         
-        Feed currentTabFeed = mDbFeedAdapter.getFeed(feedId);
+        Feed currentTabFeed = mRepositoryController.getFeed(feedId);
         setTabs(TAB_CHANNEL_TAG, currentTabFeed.getTitle());
         
         getTabHost().setOnTabChangedListener(new OnTabChangeListener(){
@@ -72,8 +72,8 @@ public class FeedTabActivity extends TabActivity implements OnItemClickListener 
         	        if (items.isEmpty())
             			Toast.makeText(FeedTabActivity.this, R.string.no_fav_msg, Toast.LENGTH_LONG).show();
         		} else if(tabId.equals(TAB_CHANNEL_TAG)) {
-        	    	Feed currentTabFeed = mDbFeedAdapter.getFeed(SharedPreferencesHelper.getPrefTabFeedId(FeedTabActivity.this));
-        	    	if (currentTabFeed != null && outofdate(currentTabFeed.getId()))
+        	    	Feed currentTabFeed = mRepositoryController.getFeed(SharedPreferencesHelper.getPrefTabFeedId(FeedTabActivity.this));
+        	    	if (currentTabFeed != null && outOfDate(currentTabFeed.getId()))
 	        	    	refreshFeed(currentTabFeed,false);
         	    	else
         	    		fillListData(R.id.feedlist);
@@ -94,50 +94,38 @@ public class FeedTabActivity extends TabActivity implements OnItemClickListener 
     @Override
     protected void onDestroy() {
     	super.onDestroy();
-    	mDbFeedAdapter.close();
+    	mRepositoryController.close();
     }
     
     @Override
     protected void onResume () {
     	super.onResume();
     	if (getTabHost().getCurrentTabTag().equals(TAB_CHANNEL_TAG)) {
-	    	Feed currentTabFeed = mDbFeedAdapter.getFeed(SharedPreferencesHelper.getPrefTabFeedId(FeedTabActivity.this));
-	    	if (currentTabFeed != null && outofdate(currentTabFeed.getId()))
+	    	Feed currentTabFeed = mRepositoryController.getFeed(SharedPreferencesHelper.getPrefTabFeedId(FeedTabActivity.this));
+	    	if (currentTabFeed != null && outOfDate(currentTabFeed.getId()))
 		    	refreshFeed(currentTabFeed,false);
 	    	else
 	    		fillListData(R.id.feedlist);
     	} else
-    		fillData(); // case on fav tab with not read fav item selected by the user => when back from web view, fav tab view needs to be refreshed in order to mark item as read
+    		fillData();
     }
     
     @Override
     protected void onPause() {
     	super.onPause();
-    	//mDbFeedAdapter.close();
     }
         
-    //Called when device orientation changed (see: android:configChanges="orientation" in manifest file)
-    //Avoiding to restart the activity (which causes a crash) when orientation changes during refresh in AsyncTask
     @Override
     public void onConfigurationChanged(Configuration newConfig){        
         super.onConfigurationChanged(newConfig);
     }
     
-    private boolean outofdate(long feedId) {
+    private boolean outOfDate(long feedId) {
     	Date now = new Date();
-    	Feed feed = mDbFeedAdapter.getFeed(feedId);
-    	//Item lastItem = mDbFeedAdapter.getLastItem(feedId);
+    	Feed feed = mRepositoryController.getFeed(feedId);
     	long diffTime = 0;
-    	long updatePeriod = SharedPreferencesHelper.getPrefUpdatePeriod(this) * 60 * 1000; // Period expressed in milliseconds
-    	/*
-    	if (lastItem != null)
-    		diffTime = now.getTime() - lastItem.getPubdate().getTime();
-    		
-    	else
-    		return true;
-    	*/
-    	
-    	// If manual update preference is set, update period < 0
+    	long updatePeriod = SharedPreferencesHelper.getPrefUpdatePeriod(this) * 60 * 1000;
+
     	if (feed == null || updatePeriod < 0)
     		return false;
     	
@@ -146,7 +134,6 @@ public class FeedTabActivity extends TabActivity implements OnItemClickListener 
     	else
     		return true;
     	
-		// check if feed is out of date
 		if (diffTime > updatePeriod)
 			return true;
 		else
@@ -164,48 +151,13 @@ public class FeedTabActivity extends TabActivity implements OnItemClickListener 
     		mIsOnline = true;
     		new UpdateFeedTask().execute(feed);
     	} else {
-    		if (mIsOnline || alwaysDisplayOfflineDialog) // May only display once the offline dialog for a better user experience
+    		if (mIsOnline || alwaysDisplayOfflineDialog)
     			showDialog(SharedPreferencesHelper.DIALOG_NO_CONNECTION);
     		mIsOnline = false;
     		fillListData(R.id.feedlist);
     	}
     }
-/*    
-    private void updateFeed(Feed feed) throws SAXException, ParserConfigurationException, IOException {	
-    	long feedId = feed.getId();
-    	
-    	FeedHandler feedHandler = new FeedHandler(this);
-    	Feed refreshedFeed = feedHandler.handleFeed(feed.getURL());
 
-    	refreshedFeed.setId(feedId);
-    	mDbFeedAdapter.updateFeed(refreshedFeed);
-    	//mDbFeedAdapter.updateFeed(feedId, mDbFeedAdapter.getUpdateContentValues(feed), feed.getItems());
-    	mDbFeedAdapter.cleanDbItems(feedId);
-
-    	FeedSharedPreferences.setPrefTabFeedId(this,feedId);
-    	
-    	//getTabHost().getTabWidget().removeAllViews();
-    	//getTabHost().clearAllTabs();
-    	//setTabs(TAB_FEED_TAG, mDbFeedAdapter.getFeed(feedId).getTitle());
-    }
-   
-    private void addFeed(URL url) throws SAXException, ParserConfigurationException, IOException {
-    	FeedHandler feedHandler = new FeedHandler(this);
-    	Feed handledFeed = feedHandler.handleFeed(url);
-    	
-    	long feedId = mDbFeedAdapter.addFeed(handledFeed);
-    	//long feedId = mDbFeedAdapter.addFeed(mDbFeedAdapter.getContentValues(feed), feed.getItems());
-    	if (feedId != -1) {
-	    	mDbFeedAdapter.cleanDbItems(feedId);
-	    	
-	    	SharedPreferencesHelper.setPrefTabFeedId(this,feedId);
-	    	
-	    	getTabHost().getTabWidget().removeAllViews();
-	    	getTabHost().clearAllTabs();
-	    	setTabs(TAB_CHANNEL_TAG, mDbFeedAdapter.getFeed(feedId).getTitle());
-    	}
-    }
-*/ 
     private List<Item> fillData() {
     	if (getTabHost().getCurrentTabTag().equals(TAB_FAV_TAG))
     		return fillListData(R.id.favoritelist);
@@ -218,37 +170,28 @@ public class FeedTabActivity extends TabActivity implements OnItemClickListener 
 		
 		List<Item> items = null;
 		if (listResource == R.id.favoritelist)
-			//items = mDbFeedAdapter.getFavoriteItems(SharedPreferencesHelper.getPrefMaxItems(this));
-			items = mDbFeedAdapter.getFavoriteItems(0);
+			items = mRepositoryController.getFavoriteItems(0);
 		else {
-			Feed currentFeed = mDbFeedAdapter.getFeed(SharedPreferencesHelper.getPrefTabFeedId(this));
+			Feed currentFeed = mRepositoryController.getFeed(SharedPreferencesHelper.getPrefTabFeedId(this));
 			if (currentFeed != null && currentFeed.getRefresh() != null) {
 				CharSequence formattedUpdate = DateFormat.format(getResources().getText(R.string.update_format_pattern), currentFeed.getRefresh());
-        		//getWindow().setTitle(getString(R.string.app_name) + " - " + getString(R.string.last_update) + " " + formattedUpdate);
 				getWindow().setTitle(getString(R.string.app_name) + " - " + formattedUpdate);
 			}
-        	items = mDbFeedAdapter.getItems(SharedPreferencesHelper.getPrefTabFeedId(this), 1, SharedPreferencesHelper.getPrefMaxItems(this));
+        	items = mRepositoryController.getItems(SharedPreferencesHelper.getPrefTabFeedId(this), 1, SharedPreferencesHelper.getPrefMaxItems(this));
 		}
 
 		FeedArrayAdapter arrayAdapter = new FeedArrayAdapter(this, R.id.title, items);
 		feedListView.setAdapter(arrayAdapter);
-		
-		//feedListView.setSelection(0);
-		
 		return items;
     }
     
     public void onItemClick (AdapterView<?> parent, View v, int position, long id) {
-    	//Item item = mDbFeedAdapter.getItem(id);
-    	//if (item != null) {
-	    	//item.read();
 	    	ContentValues values = new ContentValues();
 	    	values.put(DbSchema.ItemSchema.COLUMN_READ, DbSchema.ON);
-	    	mDbFeedAdapter.updateItem(id, values, null);
-	    	//mDbFeedAdapter.updateItem(FeedSharedPreferences.getPrefTabFeedId(this), item);
+	    	mRepositoryController.updateItem(id, values, null);
 	    	Intent intent = null;
 	    	if (SharedPreferencesHelper.getItemView(this) == 0) {
-	    		Item item = mDbFeedAdapter.getItem(id);
+	    		Item item = mRepositoryController.getItem(id);
 	    		if (item.getDescription() == null && item.getContent() == null)
 	    			intent = new Intent(this, FeedWebActivity.class);
 	    		else
@@ -258,7 +201,6 @@ public class FeedTabActivity extends TabActivity implements OnItemClickListener 
 	    	
 	        intent.putExtra(DbSchema.ItemSchema._ID, id);
 	        startActivityForResult(intent, WEB_ACTIVITY_CODE);
-    	//}
 	}
     
     @Override
@@ -277,11 +219,10 @@ public class FeedTabActivity extends TabActivity implements OnItemClickListener 
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.opt_tab_menu, menu);
         
-        // Channels menu item
         MenuItem channelsMenuItem = (MenuItem) menu.findItem(R.id.menu_opt_channels);
         SubMenu subMenu = channelsMenuItem.getSubMenu();
         
-        List<Feed> feeds = mDbFeedAdapter.getFeeds();
+        List<Feed> feeds = mRepositoryController.getFeeds();
         Iterator<Feed> feedIterator = feeds.iterator();
         Feed feed = null;
         MenuItem channelSubMenuItem = null;
@@ -303,9 +244,8 @@ public class FeedTabActivity extends TabActivity implements OnItemClickListener 
 
         subMenu.setGroupCheckable(SharedPreferencesHelper.CHANNEL_SUBMENU_GROUP, true, true);
         
-        // Preferences menu item
         MenuItem preferencesMenuItem = (MenuItem) menu.findItem(R.id.menu_opt_preferences);
-        preferencesMenuItem.setIntent(new Intent(this,FeedPrefActivity.class));
+        preferencesMenuItem.setIntent(new Intent(this,FeedPreferenceActivity.class));
         
         return true;
     }
@@ -314,17 +254,15 @@ public class FeedTabActivity extends TabActivity implements OnItemClickListener 
         switch (item.getItemId()) {
 	        case R.id.menu_opt_refresh:
 	        	if (getTabHost().getCurrentTabTag().equals(TAB_FAV_TAG)) {
-	        		// Refreshing favorites will never find new favorite items, because they are local (not updated from Internet)
 	        		fillListData(R.id.favoritelist);
 	        		Toast.makeText(this, R.string.no_new_fav_item_msg, Toast.LENGTH_LONG).show();
 	        	} else if (getTabHost().getCurrentTabTag().equals(TAB_CHANNEL_TAG)) {
-	        		Feed currentTabFeed = mDbFeedAdapter.getFeed(SharedPreferencesHelper.getPrefTabFeedId(this));
+	        		Feed currentTabFeed = mRepositoryController.getFeed(SharedPreferencesHelper.getPrefTabFeedId(this));
 			    	if (currentTabFeed != null)
 				    	refreshFeed(currentTabFeed,true);
 	        	}
 	            return true;
 	        case R.id.menu_opt_channels:
-	        	//do nothing
 	            return true;
 	        case R.id.menu_opt_preferences:
 	        	startActivity(item.getIntent());
@@ -350,7 +288,7 @@ public class FeedTabActivity extends TabActivity implements OnItemClickListener 
 			menu.setHeaderTitle (R.string.ctx_menu_title);
 			MenuInflater inflater = getMenuInflater();
 			AdapterView.AdapterContextMenuInfo acmi = (AdapterView.AdapterContextMenuInfo) menuInfo;
-			Item item = mDbFeedAdapter.getItem(acmi.id);
+			Item item = mRepositoryController.getItem(acmi.id);
 			if (item != null) {
 				if (item.isFavorite())
 		    		inflater.inflate(R.menu.ctx_menu_notfav, menu);
@@ -363,23 +301,20 @@ public class FeedTabActivity extends TabActivity implements OnItemClickListener 
     
     public boolean onContextItemSelected(MenuItem menuItem) {
     	final AdapterContextMenuInfo acmi = (AdapterContextMenuInfo) menuItem.getMenuInfo();
-    	Item item = mDbFeedAdapter.getItem(acmi.id);
+    	Item item = mRepositoryController.getItem(acmi.id);
     	ContentValues values = null;
     	switch (menuItem.getItemId()) {
     		case R.id.add_fav:
-    			//item.favorite();
     			values = new ContentValues();
     	    	values.put(DbSchema.ItemSchema.COLUMN_FAVORITE, DbSchema.ON);
-    	    	mDbFeedAdapter.updateItem(acmi.id, values, null);
+    	    	mRepositoryController.updateItem(acmi.id, values, null);
     			fillData();
     			Toast.makeText(this, R.string.add_fav_msg, Toast.LENGTH_SHORT).show();
     			return true;
     		case R.id.remove_fav:
-    			//item.unfavorite();
     			Date now = new Date();
     			long diffTime = now.getTime() - item.getPubdate().getTime();
     			long maxTime = SharedPreferencesHelper.getPrefMaxHours(this) * 60 * 60 * 1000; // Max hours expressed in milliseconds
-    			// test if item has expired
     			if (maxTime > 0 && diffTime > maxTime) {
 	    			AlertDialog.Builder builder = new AlertDialog.Builder(this);
 	    			builder.setMessage(R.string.remove_fav_confirmation)
@@ -388,7 +323,7 @@ public class FeedTabActivity extends TabActivity implements OnItemClickListener 
 	    			           public void onClick(DialogInterface dialog, int id) {
 									ContentValues values = new ContentValues();
 									values.put(DbSchema.ItemSchema.COLUMN_FAVORITE, DbSchema.OFF);
-									mDbFeedAdapter.updateItem(acmi.id, values, null);
+									mRepositoryController.updateItem(acmi.id, values, null);
 									fillData();
 									Toast.makeText(FeedTabActivity.this, R.string.remove_fav_msg, Toast.LENGTH_SHORT).show();
 	    			           }
@@ -402,13 +337,13 @@ public class FeedTabActivity extends TabActivity implements OnItemClickListener 
     			} else {
     				values = new ContentValues();
         	    	values.put(DbSchema.ItemSchema.COLUMN_FAVORITE, DbSchema.OFF);
-        	    	mDbFeedAdapter.updateItem(acmi.id, values, null);
+        	    	mRepositoryController.updateItem(acmi.id, values, null);
         			fillData();
         			Toast.makeText(this, R.string.remove_fav_msg, Toast.LENGTH_SHORT).show();
     			}
     			return true;
     		case R.id.share:
-    			item = mDbFeedAdapter.getItem(acmi.id);
+    			item = mRepositoryController.getItem(acmi.id);
     			if (item != null) {
 	    			Intent shareIntent = new Intent(Intent.ACTION_SEND);
 	                shareIntent.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.share_subject));
@@ -438,15 +373,7 @@ public class FeedTabActivity extends TabActivity implements OnItemClickListener 
 	            dialog.setCancelable(false);
 	            break;
         	case SharedPreferencesHelper.DIALOG_ABOUT:
-        		//title = getResources().getText(R.string.app_name) + " - " + getResources().getText(R.string.version) + " " + SharedPreferencesHelper.getVersionName(this);
 	        	title = getString(R.string.app_name) + " - " + getString(R.string.version) + " " + SharedPreferencesHelper.getVersionName(this);
-        		
-	        	/*
-	        	 * Without cancel button
-	        	dialog = new Dialog(this);
-	        	dialog.setContentView(R.layout.dialog_about);
-	        	dialog.setTitle(title);
-	        	*/
         		inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
         		dialogLayout = inflater.inflate(R.layout.dialog_about, null);
         		builder = new AlertDialog.Builder(this);
@@ -495,13 +422,11 @@ public class FeedTabActivity extends TabActivity implements OnItemClickListener 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
         	int[] item_rows = {R.layout.channel_item_row_notselected_notfavorite, R.layout.channel_item_row_selected_notfavorite,R.layout.channel_item_row_notselected_favorite,R.layout.channel_item_row_selected_favorite,R.layout.fav_item_row_notselected_favorite,R.layout.fav_item_row_selected_favorite,};
-        	int item_row = item_rows[0]; // Default initialization
+        	int item_row = item_rows[0];
         	
         	Item item = getItem(position);
             
         	View view = convertView;
-        	// Always inflate view, in order to display correctly the 'read' and 'favorite' states of the items => to apply the right layout+style.
-            //if (view == null) {
 	            LayoutInflater li = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
 	            if (item.isRead())
 	            	if (item.isFavorite())
@@ -520,20 +445,16 @@ public class FeedTabActivity extends TabActivity implements OnItemClickListener 
 	            	else
 	            		item_row = item_rows[0];
 	            view = li.inflate(item_row, null);
-            //}
-            
             TextView titleView = (TextView) view.findViewById(R.id.title);
-            TextView channelView = (TextView) view.findViewById(R.id.channel); // only displayed in favorite view
+            TextView channelView = (TextView) view.findViewById(R.id.channel);
             TextView pubdateView = (TextView) view.findViewById(R.id.pubdate);
             if (titleView != null)
             	titleView.setText(item.getTitle());
             if (channelView != null) {
-            	Feed feed = mDbFeedAdapter.getFeed(mDbFeedAdapter.getItemFeedId(item.getId()));
+            	Feed feed = mRepositoryController.getFeed(mRepositoryController.getItemFeedId(item.getId()));
             	if (feed != null)
             		channelView.setText(feed.getTitle());
             } if (pubdateView != null) {
-            	//DateFormat df = new SimpleDateFormat(getResources().getText(R.string.pubdate_format_pattern);
-            	//pubdateView.setText(df.format(item.getPubdate()));
             	CharSequence formattedPubdate = DateFormat.format(getResources().getText(R.string.pubdate_format_pattern), item.getPubdate());
             	pubdateView.setText(formattedPubdate);
             }
@@ -552,19 +473,18 @@ public class FeedTabActivity extends TabActivity implements OnItemClickListener 
     	
         protected Boolean doInBackground(Feed...params) {
         	feedId = params[0].getId();
-        	Item lastItem = mDbFeedAdapter.getLastItem(feedId);
+        	Item lastItem = mRepositoryController.getLastItem(feedId);
         	if (lastItem != null)
         		lastItemIdBeforeUpdate = lastItem.getId();
         	
-        	FeedHandler feedHandler = new FeedHandler(FeedTabActivity.this);
+        	FeedController feedController = new FeedController(FeedTabActivity.this);
         	
         	try {
-	        	Feed handledFeed = feedHandler.handleFeed(params[0].getURL());
+	        	Feed handledFeed = feedController.handleFeed(params[0].getURL());
 	        	handledFeed.setId(feedId);
 	        	
-	        	mDbFeedAdapter.updateFeed(handledFeed);
-	        	//mDbFeedAdapter.updateFeed(handledFeed.getId(), mDbFeedAdapter.getUpdateContentValues(handledFeed), handledFeed.getItems());
-	        	mDbFeedAdapter.cleanDbItems(feedId);
+	        	mRepositoryController.updateFeed(handledFeed);
+	        	mRepositoryController.cleanDbItems(feedId);
 	
 	        	SharedPreferencesHelper.setPrefTabFeedId(FeedTabActivity.this,feedId);
 	        	
@@ -591,7 +511,7 @@ public class FeedTabActivity extends TabActivity implements OnItemClickListener 
         	dismissDialog(SharedPreferencesHelper.DIALOG_UPDATE_PROGRESS);
         	
         	long lastItemIdAfterUpdate = -1;
-        	Item lastItem = mDbFeedAdapter.getLastItem(feedId);
+        	Item lastItem = mRepositoryController.getLastItem(feedId);
         	if (lastItem != null)
         		lastItemIdAfterUpdate = lastItem.getId();
         	if (lastItemIdAfterUpdate > lastItemIdBeforeUpdate)

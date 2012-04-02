@@ -11,6 +11,7 @@ import android.graphics.Bitmap;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.*;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.webkit.WebView;
@@ -18,7 +19,7 @@ import android.webkit.WebViewClient;
 import android.widget.Toast;
 import org.sliit.domain.Feed;
 import org.sliit.domain.Item;
-import org.sliit.service.DbFeedAdapter;
+import org.sliit.service.RepositoryController;
 import org.sliit.service.DbSchema;
 import org.sliit.service.SharedPreferencesHelper;
 
@@ -33,7 +34,7 @@ public class FeedWebActivity extends Activity {
 	
 	private static final String LOG_TAG = "FeedWebActivity";
 	
-	private DbFeedAdapter mDbFeedAdapter;
+	private RepositoryController mRepositoryController;
 	private WebView webView;
 	private long mItemId = -1;
 	
@@ -57,8 +58,8 @@ public class FeedWebActivity extends Activity {
     	// Request progress bar
         requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
     	
-        mDbFeedAdapter = new DbFeedAdapter(this);
-        mDbFeedAdapter.open();
+        mRepositoryController = new RepositoryController(this);
+        mRepositoryController.open();
     	
         setContentView(R.layout.webview);
         registerForContextMenu(findViewById(R.id.webview));
@@ -75,7 +76,7 @@ public class FeedWebActivity extends Activity {
     	if (!isOnline())
 			showDialog(SharedPreferencesHelper.DIALOG_NO_CONNECTION);
 		else if (mItemId != -1) {
-			URL link = mDbFeedAdapter.getItem(mItemId).getLink();
+			URL link = mRepositoryController.getItem(mItemId).getLink();
 			
 			webView = (WebView) findViewById(R.id.webview);
 	        webView.getSettings().setJavaScriptEnabled(true);
@@ -87,14 +88,14 @@ public class FeedWebActivity extends Activity {
 	        // set item as read (case when item is displayed from next/previous contextual menu or buttons)
             ContentValues values = new ContentValues();
 	    	values.put(DbSchema.ItemSchema.COLUMN_READ, DbSchema.ON);
-	    	mDbFeedAdapter.updateItem(mItemId, values, null);
+	    	mRepositoryController.updateItem(mItemId, values, null);
 		}
     }
     
     @Override
     protected void onDestroy() {
     	super.onDestroy();
-    	mDbFeedAdapter.close();
+    	mRepositoryController.close();
     }
     
     @Override
@@ -130,15 +131,13 @@ public class FeedWebActivity extends Activity {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.opt_item_menu, menu);
         
-        // Home menu item
         MenuItem menuItem = (MenuItem) menu.findItem(R.id.menu_opt_home);
         menuItem.setIntent(new Intent(this, FeedTabActivity.class));     
         
-        // Channels menu item
         MenuItem channelsMenuItem = (MenuItem) menu.findItem(R.id.menu_opt_channels);
         SubMenu subMenu = channelsMenuItem.getSubMenu();
         
-        List<Feed> feeds = mDbFeedAdapter.getFeeds();
+        List<Feed> feeds = mRepositoryController.getFeeds();
         Iterator<Feed> feedIterator = feeds.iterator();
         Feed feed = null;
         MenuItem channelSubMenuItem = null;
@@ -159,10 +158,8 @@ public class FeedWebActivity extends Activity {
 		}
 
         subMenu.setGroupCheckable(SharedPreferencesHelper.CHANNEL_SUBMENU_GROUP, true, true);
-        
-     	// Preferences menu item
         MenuItem preferencesMenuItem = (MenuItem) menu.findItem(R.id.menu_opt_preferences);
-        preferencesMenuItem.setIntent(new Intent(this,FeedPrefActivity.class));
+        preferencesMenuItem.setIntent(new Intent(this,FeedPreferenceActivity.class));
        
         return true;
     }
@@ -172,10 +169,8 @@ public class FeedWebActivity extends Activity {
 	        case R.id.menu_opt_home:
 	        	startActivity(item.getIntent());
 		    	setResult(RESULT_OK);
-		    	//finish();
 	        	return true;
 	        case R.id.menu_opt_channels:
-	        	//do nothing
 	            return true;
 	        case R.id.menu_opt_preferences:
 	        	startActivity(item.getIntent());
@@ -187,7 +182,6 @@ public class FeedWebActivity extends Activity {
 	        	if (item.getGroupId() == SharedPreferencesHelper.CHANNEL_SUBMENU_GROUP) {
 	        		startActivity(item.getIntent());
 	        		setResult(RESULT_OK);
-	        		//finish();
 	        		return true;
 	        	}
 	    }
@@ -201,15 +195,15 @@ public class FeedWebActivity extends Activity {
 			menu.setHeaderTitle (R.string.ctx_menu_title);
 			MenuInflater inflater = getMenuInflater();
 			
-			Item item = mDbFeedAdapter.getItem(mItemId);
+			Item item = mRepositoryController.getItem(mItemId);
 			
 			if (item != null) {
-				long feedId = mDbFeedAdapter.getItemFeedId(mItemId);
+				long feedId = mRepositoryController.getItemFeedId(mItemId);
 				boolean isFirstItem = false;
 				boolean isLastItem = false;
-				if (mItemId == mDbFeedAdapter.getFirstItem(feedId).getId())
+				if (mItemId == mRepositoryController.getFirstItem(feedId).getId())
 					isFirstItem = true;
-				else if (mItemId == mDbFeedAdapter.getLastItem(feedId).getId())
+				else if (mItemId == mRepositoryController.getLastItem(feedId).getId())
 					isLastItem = true;
 				
 				if (item.isFavorite()) {
@@ -233,25 +227,22 @@ public class FeedWebActivity extends Activity {
 
     
     public boolean onContextItemSelected(MenuItem menuItem) {
-    	Item item = mDbFeedAdapter.getItem(mItemId);
+    	Item item = mRepositoryController.getItem(mItemId);
     	ContentValues values = null;
     	Intent intent = null;
     	long feedId = -1;
     	
     	switch (menuItem.getItemId()) {
     		case R.id.add_fav:
-    			//item.favorite();
     			values = new ContentValues();
     	    	values.put(DbSchema.ItemSchema.COLUMN_FAVORITE, DbSchema.ON);
-    	    	mDbFeedAdapter.updateItem(mItemId, values, null);
+    	    	mRepositoryController.updateItem(mItemId, values, null);
     			Toast.makeText(this, R.string.add_fav_msg, Toast.LENGTH_SHORT).show();
     			return true;
     		case R.id.remove_fav:
-    			//item.unfavorite();
     			Date now = new Date();
     			long diffTime = now.getTime() - item.getPubdate().getTime();
     			long maxTime = SharedPreferencesHelper.getPrefMaxHours(this) * 60 * 60 * 1000; // Max hours expressed in milliseconds
-    			// test if item has expired
     			if (maxTime > 0 && diffTime > maxTime) {
 	    			AlertDialog.Builder builder = new AlertDialog.Builder(this);
 	    			builder.setMessage(R.string.remove_fav_confirmation)
@@ -260,7 +251,7 @@ public class FeedWebActivity extends Activity {
 	    			           public void onClick(DialogInterface dialog, int id) {
 									ContentValues values = new ContentValues();
 									values.put(DbSchema.ItemSchema.COLUMN_FAVORITE, DbSchema.OFF);
-									mDbFeedAdapter.updateItem(mItemId, values, null);
+									mRepositoryController.updateItem(mItemId, values, null);
 									Toast.makeText(FeedWebActivity.this, R.string.remove_fav_msg, Toast.LENGTH_SHORT).show();
 	    			           }
 	    			       })
@@ -273,26 +264,26 @@ public class FeedWebActivity extends Activity {
     			} else {
     				values = new ContentValues();
         	    	values.put(DbSchema.ItemSchema.COLUMN_FAVORITE, DbSchema.OFF);
-        	    	mDbFeedAdapter.updateItem(mItemId, values, null);
+        	    	mRepositoryController.updateItem(mItemId, values, null);
         			Toast.makeText(this, R.string.remove_fav_msg, Toast.LENGTH_SHORT).show();
     			}
     			return true;
     		case R.id.next:
-    			feedId = mDbFeedAdapter.getItemFeedId(mItemId);
+    			feedId = mRepositoryController.getItemFeedId(mItemId);
     			intent = new Intent(this, FeedWebActivity.class);
-    	        intent.putExtra(DbSchema.ItemSchema._ID, mDbFeedAdapter.getNextItemId(feedId, mItemId));
+    	        intent.putExtra(DbSchema.ItemSchema._ID, mRepositoryController.getNextItemId(feedId, mItemId));
     	        startActivity(intent);
     	        finish();
     			return true;
     		case R.id.previous:
-    			feedId = mDbFeedAdapter.getItemFeedId(mItemId);
+    			feedId = mRepositoryController.getItemFeedId(mItemId);
     			intent = new Intent(this, FeedWebActivity.class);
-    	        intent.putExtra(DbSchema.ItemSchema._ID, mDbFeedAdapter.getPreviousItemId(feedId, mItemId));
+    	        intent.putExtra(DbSchema.ItemSchema._ID, mRepositoryController.getPreviousItemId(feedId, mItemId));
     	        startActivity(intent);
     	        finish();
     			return true;
     		case R.id.share:
-    			item = mDbFeedAdapter.getItem(mItemId);
+    			item = mRepositoryController.getItem(mItemId);
     			if (item != null) {
 	    			Intent shareIntent = new Intent(Intent.ACTION_SEND);
 	                shareIntent.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.share_subject));
@@ -315,15 +306,8 @@ public class FeedWebActivity extends Activity {
     	AlertDialog.Builder builder = null;
         switch (id) {
         	case SharedPreferencesHelper.DIALOG_ABOUT:
-        		//title = getResources().getText(R.string.app_name) + " - " + getResources().getText(R.string.version) + " " + SharedPreferencesHelper.getVersionName(this);
 	        	title = getString(R.string.app_name) + " - " + getString(R.string.version) + " " + SharedPreferencesHelper.getVersionName(this);
 	        	
-	        	/*
-	        	 * Without cancel button
-	        	dialog = new Dialog(this);
-	        	dialog.setContentView(R.layout.dialog_about);
-	        	dialog.setTitle(title);
-	        	*/
         		inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
         		dialogLayout = inflater.inflate(R.layout.dialog_about, null);
         		builder = new AlertDialog.Builder(this);

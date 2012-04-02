@@ -12,7 +12,7 @@
         <activity android:name=".FeedTabActivity" android:label="@string/app_name" android:configChanges="orientation"/>
         <activity android:name=".FeedWebActivity" android:label="@string/app_name"/>
         <activity android:name=".FeedItemActivity" android:label="@string/app_name"/>
-        <activity android:name=".FeedPrefActivity" android:label="@string/pref_name"/>
+        <activity android:name=".FeedPreferenceActivity" android:label="@string/pref_name"/>
     </application>
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>

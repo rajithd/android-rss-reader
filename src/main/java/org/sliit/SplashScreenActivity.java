@@ -6,7 +6,7 @@ import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
-import org.sliit.service.DbFeedAdapter;
+import org.sliit.service.RepositoryController;
 import org.sliit.service.SharedPreferencesHelper;
 
 
@@ -16,13 +16,13 @@ public class SplashScreenActivity extends Activity {
 
     private final Runnable mPendingLauncherRunnable = new Runnable() {
         public void run() {
-            DbFeedAdapter mDbFeedAdapter = new DbFeedAdapter(SplashScreenActivity.this);
-            mDbFeedAdapter.open();
+            RepositoryController mRepositoryController = new RepositoryController(SplashScreenActivity.this);
+            mRepositoryController.open();
 
             Intent intent = new Intent(SplashScreenActivity.this, FeedTabActivity.class);
             startActivity(intent);
 
-            mDbFeedAdapter.close();
+            mRepositoryController.close();
             finish();
         }
     };

@@ -15,7 +15,6 @@ import org.sliit.exception.FeedException;
 import org.sliit.domain.Enclosure;
 import org.sliit.domain.Feed;
 import org.sliit.domain.Item;
-import org.sliit.domain.Feed;
 import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.IOException;
@@ -24,9 +23,9 @@ import java.net.URL;
 import java.util.*;
 
 
-public class DbFeedAdapter {
+public class RepositoryController {
 	
-	private static final String LOG_TAG = "DbFeedAdapter";
+	private static final String LOG_TAG = "RepositoryController";
 	
 	private final Context mCtx;
 	private DbHelper mDbHelper;
@@ -34,9 +33,9 @@ public class DbFeedAdapter {
     
 	private static class DbHelper extends SQLiteOpenHelper {
 		private static final String LOG_TAG = "DbHelper";
-    	private DbFeedAdapter mDbfa;
+    	private RepositoryController mDbfa;
         
-        DbHelper(DbFeedAdapter dbfa) {
+        DbHelper(RepositoryController dbfa) {
           super(dbfa.mCtx, DbSchema.DATABASE_NAME, null, DbSchema.DATABASE_VERSION);
           mDbfa = dbfa;
         }
@@ -44,15 +43,10 @@ public class DbFeedAdapter {
         @Override
         public void onCreate(SQLiteDatabase db) {
             db.execSQL(DbSchema.FeedSchema.CREATE_TABLE);
-            // Read and populate OPML feeds
             try {
-                // Get resource feeds
                 List<Feed> resourceFeeds = getOPMLResourceFeeds();
-                // Populate resource feeds
                 populateFeeds(db, resourceFeeds);
-                // Get user feeds
                 List<Feed> userFeeds = getOPMLUserFeeds();
-                // Populate user feeds
                 populateFeeds(db, userFeeds);
             } catch(XmlPullParserException xppe) {
                 Log.e(LOG_TAG,"",xppe);
@@ -75,7 +69,6 @@ public class DbFeedAdapter {
             	db.execSQL(alter_table);
             	db.execSQL(DbSchema.EnclosureSchema.CREATE_TABLE);
             	
-            	// Reformat and update already existing items description in db for offline reading
             	long feedId = -1;
             	Cursor feedCursor = null;
             	long itemId = -1;
@@ -96,7 +89,6 @@ public class DbFeedAdapter {
         				if (!itemCursor.isNull(itemCursor.getColumnIndex(DbSchema.ItemSchema.COLUMN_DESCRIPTION)))
         					itemDescription = itemCursor.getString(itemCursor.getColumnIndex(DbSchema.ItemSchema.COLUMN_DESCRIPTION));
         				
-        				// Remove HTML format from item description
         				if (itemDescription != null) {
 		                	SpannableStringBuilder spannedStr = (SpannableStringBuilder)Html.fromHtml(itemDescription.toString().trim());
 			        		Object[] spannedObjects = spannedStr.getSpans(0,spannedStr.length(),Object.class);
@@ -128,15 +120,9 @@ public class DbFeedAdapter {
         			feedCursor.close();
             }
 
-            //Log.w(LOG_TAG, "Upgrading database from version " + oldVersion + " to " + newVersion + ", which will destroy all old data");
-            //db.execSQL(DbSchema.FeedSchema.DROP_TABLE);
-            //db.execSQL(DbSchema.ItemSchema.DROP_TABLE);
-            
             try {
-                // Get resource feeds
                 List<Feed> resourceFeeds = getOPMLResourceFeeds();
-                // Populate resource feeds
-                populateFeeds(db, resourceFeeds);    
+                populateFeeds(db, resourceFeeds);
             } catch(XmlPullParserException xppe) {
                 Log.e(LOG_TAG,"",xppe);
             } catch (MalformedURLException mue) {
@@ -230,11 +216,11 @@ public class DbFeedAdapter {
         }
     }
     
-	public DbFeedAdapter(Context ctx) {
+	public RepositoryController(Context ctx) {
 	    this.mCtx = ctx;
 	}
 
-    public DbFeedAdapter open() {
+    public RepositoryController open() {
         mDbHelper = new DbHelper(this);
         mDb = mDbHelper.getWritableDatabase();
         return this;

@@ -4,13 +4,13 @@ import android.os.Bundle;
 import android.preference.ListPreference;
 import android.preference.PreferenceActivity;
 import org.sliit.domain.Feed;
-import org.sliit.service.DbFeedAdapter;
+import org.sliit.service.RepositoryController;
 
 import java.util.Iterator;
 import java.util.List;
 
 
-public class FeedPrefActivity extends PreferenceActivity {
+public class FeedPreferenceActivity extends PreferenceActivity {
 	
 	public static final String PREF_START_CHANNEL_KEY = "startChannel";
 	public static final String PREF_ITEM_VIEW_KEY = "itemView";
@@ -24,20 +24,20 @@ public class FeedPrefActivity extends PreferenceActivity {
 	public static final String DEFAULT_MAX_HOURS_PER_FEED = "-1"; // Never
 	public static final String DEFAULT_UPDATE_PERIOD = "60"; // 60 minutes = 1 hour
 	
-	private DbFeedAdapter mDbFeedAdapter;
+	private RepositoryController mRepositoryController;
 	
 	@Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        mDbFeedAdapter = new DbFeedAdapter(this);
-        mDbFeedAdapter.open();
+        mRepositoryController = new RepositoryController(this);
+        mRepositoryController.open();
         
         addPreferencesFromResource(R.xml.preferences);
         
         ListPreference listPref = (ListPreference) findPreference(PREF_START_CHANNEL_KEY);
         
-        List<Feed> feeds = mDbFeedAdapter.getFeeds();
+        List<Feed> feeds = mRepositoryController.getFeeds();
         Iterator<Feed> feedIterator = feeds.iterator();
         Feed feed = null;
         CharSequence[] entries = new CharSequence[feeds.size()];
@@ -57,6 +57,6 @@ public class FeedPrefActivity extends PreferenceActivity {
 	@Override
     protected void onDestroy() {
 		super.onDestroy();
-    	mDbFeedAdapter.close();
+    	mRepositoryController.close();
     }
 }

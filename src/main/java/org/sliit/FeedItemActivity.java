@@ -17,7 +17,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import org.sliit.domain.Feed;
 import org.sliit.domain.Item;
-import org.sliit.service.DbFeedAdapter;
+import org.sliit.service.RepositoryController;
 import org.sliit.service.DbSchema;
 import org.sliit.service.SharedPreferencesHelper;
 
@@ -29,15 +29,15 @@ public class FeedItemActivity extends Activity {
 	
 	private static final String LOG_TAG = "FeedItemActivity";
 	
-	private DbFeedAdapter mDbFeedAdapter;
+	private RepositoryController mRepositoryController;
 	private long mItemId = -1;
 	
     @Override
     public void onCreate(Bundle savedInstanceState) {
     	super.onCreate(savedInstanceState);
     	
-        mDbFeedAdapter = new DbFeedAdapter(this);
-        mDbFeedAdapter.open();
+        mRepositoryController = new RepositoryController(this);
+        mRepositoryController.open();
 
         mItemId = savedInstanceState != null ? savedInstanceState.getLong(DbSchema.ItemSchema._ID) : -1;
 
@@ -46,7 +46,7 @@ public class FeedItemActivity extends Activity {
 			mItemId = extras != null ? extras.getLong(DbSchema.ItemSchema._ID) : -1;
 		}
 		
-		Item item = mDbFeedAdapter.getItem(mItemId);
+		Item item = mRepositoryController.getItem(mItemId);
 		if (item.isFavorite())
 			setContentView(R.layout.item_favorite);
 		else
@@ -67,7 +67,7 @@ public class FeedItemActivity extends Activity {
             public void onClick(View v) {
         		adjustLinkableTextColor (v);
         		if (SharedPreferencesHelper.isOnline(FeedItemActivity.this)) {
-        			Feed feed = mDbFeedAdapter.getFeed(mDbFeedAdapter.getItemFeedId(mItemId));
+        			Feed feed = mRepositoryController.getFeed(mRepositoryController.getItemFeedId(mItemId));
         			Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(feed.getHomePage().toString()));
         	        startActivity(intent);
             	} else
@@ -104,7 +104,7 @@ public class FeedItemActivity extends Activity {
     
     private void displayItemView() {
     	if (mItemId != -1) {
-    		Item item = mDbFeedAdapter.getItem(mItemId);
+    		Item item = mRepositoryController.getItem(mItemId);
     		TextView titleView = (TextView) findViewById(R.id.title);
             TextView channelView = (TextView) findViewById(R.id.channel);
             TextView pubdateView = (TextView) findViewById(R.id.pubdate);
@@ -112,7 +112,7 @@ public class FeedItemActivity extends Activity {
             if (titleView != null)
             	titleView.setText(item.getTitle());
             if (channelView != null) {
-            	Feed feed = mDbFeedAdapter.getFeed(mDbFeedAdapter.getItemFeedId(mItemId));
+            	Feed feed = mRepositoryController.getFeed(mRepositoryController.getItemFeedId(mItemId));
             	if (feed != null)
             		channelView.setText(feed.getTitle());
             } 
@@ -134,14 +134,14 @@ public class FeedItemActivity extends Activity {
             // set item as read (case when item is displayed from next/previous contextual menu or buttons)
             ContentValues values = new ContentValues();
 	    	values.put(DbSchema.ItemSchema.COLUMN_READ, DbSchema.ON);
-	    	mDbFeedAdapter.updateItem(mItemId, values, null);
+	    	mRepositoryController.updateItem(mItemId, values, null);
     	}
     }
     
     @Override
     protected void onDestroy() {
     	super.onDestroy();
-    	mDbFeedAdapter.close();
+    	mRepositoryController.close();
     }
     
     @Override
@@ -168,7 +168,7 @@ public class FeedItemActivity extends Activity {
         MenuItem channelsMenuItem = (MenuItem) menu.findItem(R.id.menu_opt_channels);
         SubMenu subMenu = channelsMenuItem.getSubMenu();
         
-        List<Feed> feeds = mDbFeedAdapter.getFeeds();
+        List<Feed> feeds = mRepositoryController.getFeeds();
         Iterator<Feed> feedIterator = feeds.iterator();
         Feed feed = null;
         MenuItem channelSubMenuItem = null;
@@ -192,7 +192,7 @@ public class FeedItemActivity extends Activity {
         
      	// Preferences menu item
         MenuItem preferencesMenuItem = (MenuItem) menu.findItem(R.id.menu_opt_preferences);
-        preferencesMenuItem.setIntent(new Intent(this,FeedPrefActivity.class));
+        preferencesMenuItem.setIntent(new Intent(this,FeedPreferenceActivity.class));
        
         return true;
     }
@@ -232,15 +232,15 @@ public class FeedItemActivity extends Activity {
 			menu.setHeaderTitle (R.string.ctx_menu_title);
 			MenuInflater inflater = getMenuInflater();
 			
-			Item item = mDbFeedAdapter.getItem(mItemId);
+			Item item = mRepositoryController.getItem(mItemId);
 			
 			if (item != null) {
-				long feedId = mDbFeedAdapter.getItemFeedId(mItemId);
+				long feedId = mRepositoryController.getItemFeedId(mItemId);
 				boolean isFirstItem = false;
 				boolean isLastItem = false;
-				if (mItemId == mDbFeedAdapter.getFirstItem(feedId).getId())
+				if (mItemId == mRepositoryController.getFirstItem(feedId).getId())
 					isFirstItem = true;
-				else if (mItemId == mDbFeedAdapter.getLastItem(feedId).getId())
+				else if (mItemId == mRepositoryController.getLastItem(feedId).getId())
 					isLastItem = true;
 				
 				if (item.isFavorite()) {
@@ -264,7 +264,7 @@ public class FeedItemActivity extends Activity {
 
     
     public boolean onContextItemSelected(MenuItem menuItem) {
-    	Item item = mDbFeedAdapter.getItem(mItemId);
+    	Item item = mRepositoryController.getItem(mItemId);
     	ImageView favView = (ImageView) findViewById(R.id.fav);
     	ContentValues values = null;
     	Intent intent = null;
@@ -278,7 +278,7 @@ public class FeedItemActivity extends Activity {
     			//item.favorite();
     			values = new ContentValues();
     	    	values.put(DbSchema.ItemSchema.COLUMN_FAVORITE, DbSchema.ON);
-    	    	mDbFeedAdapter.updateItem(mItemId, values, null);
+    	    	mRepositoryController.updateItem(mItemId, values, null);
     	    	favView.setImageResource(R.drawable.fav);
     			Toast.makeText(this, R.string.add_fav_msg, Toast.LENGTH_SHORT).show();
     			return true;
@@ -298,7 +298,7 @@ public class FeedItemActivity extends Activity {
 									values.put(DbSchema.ItemSchema.COLUMN_FAVORITE, DbSchema.OFF);
 									ImageView favView = (ImageView) findViewById(R.id.fav);
 					    	    	favView.setImageResource(R.drawable.no_fav);
-									mDbFeedAdapter.updateItem(mItemId, values, null);
+									mRepositoryController.updateItem(mItemId, values, null);
 									Toast.makeText(FeedItemActivity.this, R.string.remove_fav_msg, Toast.LENGTH_SHORT).show();
 	    			           }
 	    			       })
@@ -311,27 +311,27 @@ public class FeedItemActivity extends Activity {
     			} else {
     				values = new ContentValues();
         	    	values.put(DbSchema.ItemSchema.COLUMN_FAVORITE, DbSchema.OFF);
-        	    	mDbFeedAdapter.updateItem(mItemId, values, null);
+        	    	mRepositoryController.updateItem(mItemId, values, null);
 	    	    	favView.setImageResource(R.drawable.no_fav);
         			Toast.makeText(this, R.string.remove_fav_msg, Toast.LENGTH_SHORT).show();
     			}
     			return true;
     		case R.id.next:
-    			feedId = mDbFeedAdapter.getItemFeedId(mItemId);
+    			feedId = mRepositoryController.getItemFeedId(mItemId);
     			intent = new Intent(this, FeedItemActivity.class);
-    	        intent.putExtra(DbSchema.ItemSchema._ID, mDbFeedAdapter.getNextItemId(feedId, mItemId));
+    	        intent.putExtra(DbSchema.ItemSchema._ID, mRepositoryController.getNextItemId(feedId, mItemId));
     	        startActivity(intent);
     	        finish();
     			return true;
     		case R.id.previous:
-    			feedId = mDbFeedAdapter.getItemFeedId(mItemId);
+    			feedId = mRepositoryController.getItemFeedId(mItemId);
     			intent = new Intent(this, FeedItemActivity.class);
-    	        intent.putExtra(DbSchema.ItemSchema._ID, mDbFeedAdapter.getPreviousItemId(feedId, mItemId));
+    	        intent.putExtra(DbSchema.ItemSchema._ID, mRepositoryController.getPreviousItemId(feedId, mItemId));
     	        startActivity(intent);
     	        finish();
     			return true;
     		case R.id.share:
-    			item = mDbFeedAdapter.getItem(mItemId);
+    			item = mRepositoryController.getItem(mItemId);
     			if (item != null) {
 	    			Intent shareIntent = new Intent(Intent.ACTION_SEND);
 	                shareIntent.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.share_subject));
